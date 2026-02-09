@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Activity Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+    --primary:#4facfe;
+    --secondary:#00f2fe;
+    --bg:#f4f4f4;
+    --card:#fff;
+    --text:#222;
+}
+.dark{
+    --bg:#121212;
+    --card:#1f1f1f;
+    --text:#eee;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:"Segoe UI",sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    padding:20px;
+}
+
+/* CONTAINER */
+.container{
+    max-width:900px;
+    margin:0 auto;
+}
+
+/* HEADER */
+header{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+/* CARD */
+.card{
+    background:var(--card);
+    padding:22px;
+    border-radius:18px;
+    margin-bottom:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+input,select,button{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    margin-bottom:10px;
+    font-size:14px;
+}
+
+button{
+    border:none;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+}
+
+/* ACTIVITY */
+.activity{
+    background:#f0f3f8;
+    padding:14px;
+    border-radius:14px;
+    margin-bottom:12px;
+}
+.activity.done{
+    background:#d9f7e5;
+    text-decoration:line-through;
+}
+
+.actions{
+    margin-top:8px;
+}
+.actions button{
+    width:auto;
+    margin-right:6px;
+    padding:6px 10px;
+}
+
+/* TAG */
+.tag{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:10px;
+    font-size:11px;
+    color:white;
+    margin:6px 0;
+}
+.tag.Olahraga{background:#ff7675;}
+.tag.Kerja{background:#0984e3;}
+.tag.Belajar{background:#6c5ce7;}
+.tag.Istirahat{background:#00b894;}
+
+/* STATS */
+.stats{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+}
+.stat{
+    flex:1;
+    min-width:200px;
+    padding:18px;
+    border-radius:18px;
+    color:white;
+    text-align:center;
+    background:linear-gradient(135deg,#43e97b,#38f9d7);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+    <h1>🏃 Activity Tracker</h1>
+    <button onclick="toggleDark()">🌙 Dark Mode</button>
+</header>
+
+<!-- FORM -->
+<div class="card">
+    <h3>Tambah Aktivitas</h3>
+
+    <input id="activityName" placeholder="Nama aktivitas">
+
+    <select id="activityCategory">
+        <option value="Olahraga">🏃 Olahraga</option>
+        <option value="Kerja">💼 Kerja</option>
+        <option value="Belajar">📚 Belajar</option>
+        <option value="Istirahat">😴 Istirahat</option>
+    </select>
+
+    <input type="date" id="activityDate">
+    <input type="time" id="activityTime">
+
+    <button onclick="getLocation()">📍 Ambil Lokasi</button>
+    <small id="locationStatus"></small>
+
+    <label>Custom Alarm</label>
+    <input type="file" id="customAlarm" accept="audio/*">
+
+    <label>Volume Alarm</label>
+    <input type="range" min="0" max="1" step="0.1" id="volume">
+
+    <button onclick="addActivity()">Tambah Aktivitas</button>
+</div>
+
+<!-- SEARCH -->
+<div class="card">
+    <input id="search" placeholder="🔍 Cari aktivitas..." oninput="show()">
+</div>
+
+<!-- LIST -->
+<div class="card">
+    <h3>Daftar Aktivitas</h3>
+    <div id="list"></div>
+</div>
+
+<!-- STATS -->
+<div class="card">
+    <h3>Statistik</h3>
+    <div class="stats">
+        <div class="stat">
+            <h2 id="totalDone">0</h2>
+            <small>Selesai</small>
+        </div>
+        <div class="stat" style="background:linear-gradient(135deg,#fa709a,#fee140)">
+            <h2 id="totalAll">0</h2>
+            <small>Total</small>
+        </div>
+    </div>
+</div>
+
+<audio id="alarmSound"></audio>
+
+</div>
+
+<script>
+let activities = JSON.parse(localStorage.getItem("activities")) || [];
+let currentLocation = null;
+
+const alarmSound = document.getElementById("alarmSound");
+alarmSound.src = localStorage.getItem("alarm") ||
+"https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg";
+alarmSound.volume = localStorage.getItem("volume") || 1;
+volume.value = alarmSound.volume;
+
+customAlarm.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    alarmSound.src = url;
+    localStorage.setItem("alarm",url);
+};
+
+volume.oninput = e => {
+    alarmSound.volume = e.target.value;
+    localStorage.setItem("volume",e.target.value);
+};
+
+function getLocation(){
+    if(!navigator.geolocation) return alert("GPS tidak didukung");
+    locationStatus.innerText="Mengambil lokasi...";
+    navigator.geolocation.getCurrentPosition(p=>{
+        currentLocation={lat:p.coords.latitude,lng:p.coords.longitude};
+        locationStatus.innerText="📍 Lokasi tersimpan";
+    },()=>alert("Gagal mengambil lokasi"));
+}
+
+function save(){
+    localStorage.setItem("activities",JSON.stringify(activities));
+}
+
+function status(a){
+    const now=new Date();
+    const t=new Date(a.date+"T"+a.start);
+    if(a.done) return "✅ Done";
+    if(now<t) return "⏳ Upcoming";
+    return "🔥 Ongoing";
+}
+
+function addActivity(){
+    if(!activityName.value||!activityDate.value||!activityTime.value){
+        alert("Lengkapi data aktivitas");
+        return;
+    }
+
+    activities.push({
+        id:Date.now(),
+        name:activityName.value,
+        category:activityCategory.value,
+        date:activityDate.value,
+        start:activityTime.value,
+        done:false,
+        alarmed:false,
+        location:currentLocation
+    });
+
+    activityName.value="";
+    currentLocation=null;
+    locationStatus.innerText="";
+    save(); show();
+}
+
+function show(){
+    list.innerHTML="";
+    const q=search.value.toLowerCase();
+
+    activities
+    .filter(a=>a.name.toLowerCase().includes(q))
+    .forEach((a,i)=>{
+        const map=a.location?`
+        <iframe width="100%" height="140" style="border-radius:12px;border:0"
+        src="https://www.google.com/maps?q=${a.location.lat},${a.location.lng}&z=15&output=embed"></iframe>`:"";
+
+        list.innerHTML+=`
+        <div class="activity ${a.done?"done":""}">
+            <b>${a.name}</b>
+            <div class="tag ${a.category}">${a.category}</div>
+            <small>${a.date} ${a.start} • ${status(a)}</small>
+            ${map}
+            <div class="actions">
+                ${a.done?"":`<button onclick="finish(${i})">✔</button>`}
+                <button onclick="edit(${i})">✏️</button>
+                <button onclick="remove(${i})">🗑️</button>
+            </div>
+        </div>`;
+    });
+
+    totalAll.innerText=activities.length;
+    totalDone.innerText=activities.filter(a=>a.done).length;
+}
+
+function finish(i){activities[i].done=true;save();show();}
+function edit(i){
+    const n=prompt("Edit nama",activities[i].name);
+    if(n) activities[i].name=n;
+    save();show();
+}
+function remove(i){
+    if(confirm("Hapus aktivitas?")){
+        activities.splice(i,1);
+        save();show();
+    }
+}
+
+setInterval(()=>{
+    const now=new Date();
+    activities.forEach(a=>{
+        if(a.done||a.alarmed) return;
+        const t=new Date(a.date+"T"+a.start);
+        if(now>=t){
+            alarmSound.play();
+            if(confirm("⏰ "+a.name+"\nSnooze 5 menit?")){
+                t.setMinutes(t.getMinutes()+5);
+                a.start=t.toTimeString().slice(0,5);
+            }
+            a.alarmed=true;
+            save();
+        }
+    });
+},1000);
+
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
+
+show();
+</script>
+
+</body>
+</html>
