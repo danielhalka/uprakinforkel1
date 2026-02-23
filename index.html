@@ -2,33 +2,40 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<title>Activity Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Activity Reminder</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
+/* ===============================
+   🍎 IOS STYLE UI
+================================ */
+
 :root{
-    --primary: linear-gradient(135deg,#667eea,#764ba2);
-    --bg:#f4f6fb;
-    --card:rgba(255,255,255,0.75);
+    --bg:#f2f2f7;
+    --card:#ffffff;
     --text:#1c1c1e;
+    --border:#e5e5ea;
+    --primary:#007aff;
 }
 
-body.dark{
-    --bg:#0f172a;
-    --card:rgba(30,41,59,0.75);
+.dark{
+    --bg:#000;
+    --card:#1c1c1e;
     --text:#fff;
+    --border:#2c2c2e;
+    --primary:#0a84ff;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 
 body{
     margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    padding:18px;
     background:var(--bg);
     color:var(--text);
-    padding:20px;
-    transition:.3s;
 }
 
 .container{
@@ -36,95 +43,119 @@ body{
     margin:auto;
 }
 
+/* HEADER */
 header{
     text-align:center;
-    margin-bottom:25px;
+    margin-bottom:22px;
 }
 
-h2{
-    margin:0;
-    font-size:28px;
-    background:var(--primary);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
-
+/* CARD */
 .card{
-    backdrop-filter:blur(20px);
     background:var(--card);
+    border-radius:22px;
     padding:20px;
-    border-radius:25px;
-    margin-bottom:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    margin-bottom:16px;
+    box-shadow:0 4px 14px rgba(0,0,0,.06);
+    overflow:hidden;
 }
 
+/* INPUT */
 input,select{
     width:100%;
-    height:50px;
-    border-radius:15px;
-    border:none;
-    padding:0 15px;
+    height:48px;
+    border-radius:14px;
+    border:1px solid var(--border);
+    background:#f9f9fb;
+    padding:0 14px;
+    font-size:15px;
     margin-bottom:12px;
-    font-size:14px;
+    outline:none;
 }
 
+input:focus,select:focus{
+    border-color:var(--primary);
+    background:white;
+}
+
+input[type="datetime-local"]{
+    appearance:none;
+    -webkit-appearance:none;
+}
+
+/* BUTTON */
 button{
     width:100%;
     height:50px;
     border:none;
-    border-radius:15px;
+    border-radius:16px;
     background:var(--primary);
     color:white;
-    font-weight:bold;
+    font-weight:600;
+    font-size:15px;
     cursor:pointer;
-    transition:.2s;
 }
 
-button:hover{
-    transform:scale(1.03);
+header button{
+    background:#e5e5ea;
+    color:#000;
+    margin-top:10px;
 }
 
+/* ACTIVITY LIST */
 .activity{
-    padding:15px;
-    border-radius:18px;
-    background:white;
+    background:#f9f9fb;
+    padding:14px;
+    border-radius:16px;
     margin-bottom:12px;
-    animation:fadeIn .4s ease;
 }
 
-body.dark .activity{
-    background:#1e293b;
+.activity.done{
+    background:#d1f5dd;
+    text-decoration:line-through;
 }
 
-.countdown{
-    font-weight:bold;
-    color:#ff3b30;
+.actions{
+    margin-top:8px;
 }
 
-@keyframes fadeIn{
-    from{opacity:0;transform:translateY(10px);}
-    to{opacity:1;transform:translateY(0);}
+.actions button{
+    width:auto;
+    height:32px;
+    padding:5px 10px;
+    font-size:12px;
+    margin-right:6px;
 }
 
+/* TAG */
+.tag{
+    display:inline-block;
+    border-radius:999px;
+    padding:4px 12px;
+    font-size:11px;
+    color:white;
+    margin:6px 0;
+}
+
+.tag.Olahraga{background:#ff7675;}
+.tag.Kerja{background:#0984e3;}
+.tag.Belajar{background:#6c5ce7;}
+.tag.Istirahat{background:#00b894;}
+
+/* STATS */
 .stats{
     display:flex;
-    gap:15px;
+    gap:12px;
+    flex-wrap:wrap;
 }
 
 .stat{
     flex:1;
-    padding:20px;
-    border-radius:20px;
+    min-width:150px;
+    border-radius:18px;
+    padding:18px;
     background:var(--primary);
     color:white;
     text-align:center;
-}
-
-#map{
-    height:300px;
-    border-radius:20px;
-    margin-top:10px;
-    display:none;
 }
 </style>
 </head>
@@ -134,218 +165,220 @@ body.dark .activity{
 <div class="container">
 
 <header>
-<h2>📅 Smart Reminder</h2>
-<button onclick="toggleDark()">🌙 Toggle Dark Mode</button>
+    <h2>🏃 Activity Tracker</h2>
+    <button onclick="toggleDark()">🌙 Dark Mode</button>
 </header>
 
+<!-- FORM -->
 <div class="card">
-<h3>Tambah Aktivitas</h3>
+    <h3>Tambah Aktivitas</h3>
 
-<input id="name" placeholder="Nama aktivitas">
-<select id="category">
-<option>Belajar</option>
-<option>Kerja</option>
-<option>Olahraga</option>
-<option>Istirahat</option>
-</select>
+    <input id="activityName" placeholder="Nama aktivitas">
 
-<input type="datetime-local" id="datetime">
+    <select id="activityCategory">
+        <option value="Olahraga">🏃 Olahraga</option>
+        <option value="Kerja">💼 Kerja</option>
+        <option value="Belajar">📚 Belajar</option>
+        <option value="Istirahat">😴 Istirahat</option>
+    </select>
 
-<button onclick="openMap()">📍 Pilih Lokasi dari Map</button>
-<div id="map"></div>
-<small id="locationText"></small>
+    <!-- DATETIME GABUNG -->
+    <input type="datetime-local" id="activityDateTime">
 
-<label>Volume Alarm</label>
-<input type="range" min="0" max="1" step="0.1" id="volume">
+    <button onclick="getLocation()">📍 Ambil Lokasi</button>
+    <small id="locationStatus"></small>
 
-<button onclick="add()">Tambah</button>
+    <label>Custom Alarm</label>
+    <input type="file" id="customAlarm" accept="audio/*">
+
+    <label>Volume Alarm</label>
+    <input type="range" min="0" max="1" step="0.1" id="volume">
+
+    <button onclick="addActivity()">Tambah Aktivitas</button>
 </div>
 
+<!-- SEARCH -->
 <div class="card">
-<input placeholder="🔍 Cari aktivitas..." id="search" oninput="show()">
+    <input id="search" placeholder="🔍 Cari aktivitas..." oninput="show()">
 </div>
 
+<!-- LIST -->
 <div class="card">
-<h3>Daftar Aktivitas</h3>
-<div id="list"></div>
+    <h3>Daftar Aktivitas</h3>
+    <div id="list"></div>
 </div>
 
+<!-- STATS -->
 <div class="card">
-<h3>Statistik</h3>
-<div class="stats">
-<div class="stat">
-<h2 id="done">0</h2>
-<small>Selesai</small>
-</div>
-<div class="stat">
-<h2 id="total">0</h2>
-<small>Total</small>
-</div>
-</div>
-</div>
-
+    <h3>Statistik</h3>
+    <div class="stats">
+        <div class="stat">
+            <h2 id="totalDone">0</h2>
+            <small>Selesai</small>
+        </div>
+        <div class="stat">
+            <h2 id="totalAll">0</h2>
+            <small>Total</small>
+        </div>
+    </div>
 </div>
 
-<audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" loop></audio>
+<audio id="alarmSound"></audio>
+
+</div>
 
 <script>
 let activities = JSON.parse(localStorage.getItem("activities")) || [];
-let currentLocation=null;
-let map,marker;
-const alarm=document.getElementById("alarm");
+let currentLocation = null;
 
-volume.value=1;
-volume.oninput=e=>alarm.volume=e.target.value;
+const alarmSound = document.getElementById("alarmSound");
 
-function toggleDark(){
-    document.body.classList.toggle("dark");
-}
+alarmSound.src = localStorage.getItem("alarm") ||
+"https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg";
 
-/* ===== MAP ===== */
-function openMap(){
-    document.getElementById("map").style.display="block";
+alarmSound.volume = localStorage.getItem("volume") || 1;
 
-    if(!map){
-        map=L.map('map').setView([-6.2,106.8],13);
+volume.value = alarmSound.volume;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-            attribution:'©️ OpenStreetMap'
-        }).addTo(map);
+/* custom alarm */
+customAlarm.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    alarmSound.src = url;
+    localStorage.setItem("alarm",url);
+};
 
-        if(navigator.geolocation){
-            navigator.geolocation.getCurrentPosition(pos=>{
-                const lat=pos.coords.latitude;
-                const lon=pos.coords.longitude;
-                map.setView([lat,lon],15);
-                marker=L.marker([lat,lon]).addTo(map);
-                currentLocation={lat,lon};
-            });
-        }
+volume.oninput = e => {
+    alarmSound.volume = e.target.value;
+    localStorage.setItem("volume",e.target.value);
+};
 
-        map.on('click',async e=>{
-            const lat=e.latlng.lat;
-            const lon=e.latlng.lng;
+/* location */
+function getLocation(){
+    if(!navigator.geolocation) return alert("GPS tidak didukung");
 
-            if(marker){marker.setLatLng(e.latlng);}
-            else{marker=L.marker(e.latlng).addTo(map);}
+    locationStatus.innerText="Mengambil lokasi...";
 
-            currentLocation={lat,lon};
-
-            try{
-                const res=await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-                );
-                const data=await res.json();
-                locationText.innerText="📍 "+data.display_name;
-                currentLocation.name=data.display_name;
-            }catch{
-                locationText.innerText="📍 Lokasi dipilih";
-            }
-        });
-    }
+    navigator.geolocation.getCurrentPosition(p=>{
+        currentLocation={
+            lat:p.coords.latitude,
+            lng:p.coords.longitude
+        };
+        locationStatus.innerText="📍 Lokasi tersimpan";
+    });
 }
 
 function save(){
     localStorage.setItem("activities",JSON.stringify(activities));
 }
 
-function add(){
-    if(!name.value||!datetime.value){
-        alert("Lengkapi data!");
+function status(a){
+    const now=new Date();
+    const t=new Date(a.datetime);
+
+    if(a.done) return "✅ Done";
+    if(now<t) return "⏳ Upcoming";
+    return "🔥 Ongoing";
+}
+
+/* tambah */
+function addActivity(){
+
+    if(!activityName.value || !activityDateTime.value){
+        alert("Lengkapi data aktivitas");
         return;
     }
 
     activities.push({
         id:Date.now(),
-        name:name.value,
-        category:category.value,
-        datetime:datetime.value,
-        location:currentLocation,
+        name:activityName.value,
+        category:activityCategory.value,
+        datetime:activityDateTime.value,
         done:false,
-        alarmed:false
+        alarmed:false,
+        location:currentLocation
     });
 
-    name.value="";
-    datetime.value="";
-    locationText.innerText="";
+    activityName.value="";
+    activityDateTime.value="";
     currentLocation=null;
 
     save();
     show();
 }
 
+/* tampil */
 function show(){
+
     list.innerHTML="";
     const q=search.value.toLowerCase();
 
-    activities.filter(a=>a.name.toLowerCase().includes(q))
+    activities
+    .filter(a=>a.name.toLowerCase().includes(q))
     .forEach((a,i)=>{
-        const timeLeft=getCountdown(a.datetime);
+
+        const map=a.location?
+        `<iframe width="100%" height="140" style="border-radius:12px;border:0"
+        src="https://www.google.com/maps?q=${a.location.lat},${a.location.lng}&z=15&output=embed"></iframe>`:"";
 
         list.innerHTML+=`
-        <div class="activity">
-        <b>${a.name}</b><br>
-        <small>${new Date(a.datetime).toLocaleString()}</small><br>
-        <span class="countdown">${timeLeft}</span><br>
-        ${a.location?`
-        <small>📍 ${a.location.name||""}</small><br>
-        <a target="_blank" href="https://www.google.com/maps?q=${a.location.lat},${a.location.lon}">
-        Buka di Google Maps</a><br>`:""}
-        <button onclick="finish(${i})">✔ Selesai</button>
-        <button onclick="remove(${i})">🗑 Hapus</button>
-        </div>
-        `;
+        <div class="activity ${a.done?"done":""}">
+            <b>${a.name}</b>
+            <div class="tag ${a.category}">${a.category}</div>
+            <small>${new Date(a.datetime).toLocaleString()} • ${status(a)}</small>
+            ${map}
+            <div class="actions">
+                ${a.done?"":`<button onclick="finish(${i})">✔</button>`}
+                <button onclick="edit(${i})">✏️</button>
+                <button onclick="remove(${i})">🗑️</button>
+            </div>
+        </div>`;
     });
 
-    total.innerText=activities.length;
-    done.innerText=activities.filter(a=>a.done).length;
+    totalAll.innerText=activities.length;
+    totalDone.innerText=activities.filter(a=>a.done).length;
 }
 
-function finish(i){
-    activities[i].done=true;
+function finish(i){activities[i].done=true;save();show();}
+function edit(i){
+    const n=prompt("Edit nama",activities[i].name);
+    if(n) activities[i].name=n;
     save();show();
 }
-
 function remove(i){
-    activities.splice(i,1);
-    save();show();
+    if(confirm("Hapus aktivitas?")){
+        activities.splice(i,1);
+        save();show();
+    }
 }
 
-function getCountdown(date){
-    const now=new Date();
-    const t=new Date(date);
-    const diff=t-now;
-
-    if(diff<=0) return "⏰ Waktunya!";
-
-    const h=Math.floor(diff/1000/60/60);
-    const m=Math.floor((diff/1000/60)%60);
-    const s=Math.floor((diff/1000)%60);
-
-    return `⏳ ${h}j ${m}m ${s}d`;
-}
-
-/* ALARM */
+/* alarm */
 setInterval(()=>{
     const now=new Date();
 
     activities.forEach(a=>{
-        if(a.done||a.alarmed) return;
+        if(a.done || a.alarmed) return;
 
         const t=new Date(a.datetime);
+
         if(now>=t){
-            alarm.play();
-            if(confirm("⏰ "+a.name+" sekarang!")){
-                alarm.pause();
-                alarm.currentTime=0;
-                a.alarmed=true;
-                save();
+            alarmSound.play();
+
+            if(confirm("⏰ "+a.name+"\nSnooze 5 menit?")){
+                t.setMinutes(t.getMinutes()+5);
+                a.datetime = t.toISOString().slice(0,16);
             }
+
+            a.alarmed=true;
+            save();
         }
     });
-
-    show();
 },1000);
+
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
 
 show();
 </script>
